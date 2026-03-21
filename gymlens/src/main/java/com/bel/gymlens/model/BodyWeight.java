@@ -1,11 +1,13 @@
 package com.bel.gymlens.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 
 @Entity
 @Table(name = "weight")
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class BodyWeight {
 
     @Id

@@ -31,3 +31,14 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Database files — NEVER commit these
+*.db
+*.sqlite
+*.db-shm
+*.db-wal
+
+# Secrets — NEVER commit these
+.env
+application-local.yml
+application-prod.yml

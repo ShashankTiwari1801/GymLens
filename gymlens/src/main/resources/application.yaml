@@ -3,9 +3,9 @@ spring:
     name: gymlens
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/notificationdb
-    username: notifuser
-    password: notifpass
+    url: jdbc:postgresql://localhost:5432/gymlensdb
+    username: gymlensuser
+    password: gymlenspass
     driver-class-name: org.postgresql.Driver
 
   jpa:

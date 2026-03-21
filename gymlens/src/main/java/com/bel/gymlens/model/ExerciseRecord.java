@@ -1,11 +1,15 @@
 package com.bel.gymlens.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 
 @Entity
 @Table(name = "exercise_records")
 @Data
+@Setter
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
 public class ExerciseRecord {
 
     @Id
@@ -23,4 +27,5 @@ public class ExerciseRecord {
 
     @Column(name = "reps")
     private Integer reps;
+
 }

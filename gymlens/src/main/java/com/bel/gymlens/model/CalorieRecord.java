@@ -1,10 +1,14 @@
 package com.bel.gymlens.model;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 
 @Entity
 @Table(name = "calorie_records")
 @Data
+@Setter
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
 public class CalorieRecord {
 
     @Id
