@@ -27,7 +27,7 @@ public class MigrationController {
 
     @GetMapping("/status")
     public ResponseEntity<String> getMigrationStatus() {
-//        String status = migrationService.getStatus();
+        String status = migrationService.getStatus();
         return ResponseEntity.ok("done");
     }
 

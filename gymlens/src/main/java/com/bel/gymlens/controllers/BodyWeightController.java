@@ -42,8 +42,8 @@ public class BodyWeightController {
     }
 
     @GetMapping("/count")
-    public ResponseEntity<ApiResponse<Long>> getCount() {
-        return ResponseEntity.ok(ApiResponse.success(bodyWeightService.getCount()));
+    public ResponseEntity<Long> getCount() {
+        return ResponseEntity.ok(bodyWeightService.getCount());
     }
 
     @GetMapping("/all")

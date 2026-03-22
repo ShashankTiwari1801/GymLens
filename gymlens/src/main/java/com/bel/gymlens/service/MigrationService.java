@@ -6,7 +6,10 @@ import com.bel.gymlens.repository.*;
 import com.bel.gymlens.repository.ExerciseRecordRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -22,24 +25,26 @@ public class MigrationService {
     private final CalorieRecordRepository calorieRecordRepository;
     private final DailyRoutineRepository dailyRoutineRepository;
     private final UserInfoRepository userInfoRepository;
+    private final ExerciseRepository exerciseRepository;
 
     private static final String DB_PATH = "src/main/resources/data/WorkoutData.db";
 
     public String run() {
         try (Connection conn = DriverManager.getConnection("jdbc:sqlite:" + DB_PATH)) {
-//            log.info("Connected to SQLite database");
+            log.info("Connected to SQLite database");
 
             migrateExerciseRecords(conn);
             migrateBodyWeight(conn);
             migrateCalorieRecords(conn);
             migrateDailyRoutine(conn);
             migrateUserInfo(conn);
+            migrateExercises();
 
-//            log.info("Migration completed successfully");
+            log.info("Migration completed successfully");
             return "Migration completed successfully";
 
         } catch (SQLException e) {
-//            log.error("Migration failed: {}", e.getMessage());
+            log.error("Migration failed: {}", e.getMessage());
             return "Migration failed: " + e.getMessage();
         }
     }
@@ -61,7 +66,7 @@ public class MigrationService {
         }
 
         exerciseRecordRepository.saveAll(records);
-//        log.info("Migrated {} exercise records", records.size());
+        log.info("Migrated {} exercise records", records.size());
     }
 
     private void migrateBodyWeight(Connection conn) throws SQLException {
@@ -103,7 +108,7 @@ public class MigrationService {
         }
 
         calorieRecordRepository.saveAll(records);
-//        log.info("Migrated {} calorie records", records.size());
+        log.info("Migrated {} calorie records", records.size());
     }
 
     private void migrateDailyRoutine(Connection conn) throws SQLException {
@@ -121,7 +126,7 @@ public class MigrationService {
         }
 
         dailyRoutineRepository.saveAll(records);
-//        log.info("Migrated {} daily routine records", records.size());
+        log.info("Migrated {} daily routine records", records.size());
     }
 
     private void migrateUserInfo(Connection conn) throws SQLException {
@@ -140,7 +145,7 @@ public class MigrationService {
         }
 
         userInfoRepository.saveAll(records);
-//        log.info("Migrated {} user info records", records.size());
+        log.info("Migrated {} user info records", records.size());
     }
 
     public String getStatus() {
@@ -151,5 +156,28 @@ public class MigrationService {
         if (exerciseCount == 0) return "Not migrated yet";
         return String.format("Migrated — %d exercise records, %d weight records, %d calorie records",
                 exerciseCount, weightCount, calorieCount);
+    }
+
+    private void migrateExercises() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            ClassPathResource resource = new ClassPathResource("data/exercises.json");
+            JsonNode root = mapper.readTree(resource.getInputStream());
+
+            List<Exercise> exercises = new ArrayList<>();
+            root.properties().forEach(entry -> {
+                Exercise exercise = new Exercise();
+                exercise.setExerciseId(Long.parseLong(entry.getKey()));
+                exercise.setExerciseName(entry.getValue().get(0).asText());
+                exercise.setMuscle(entry.getValue().get(1).asText());
+                exercises.add(exercise);
+            });
+
+            exerciseRepository.saveAll(exercises);
+            log.info("Migrated {} exercises", exercises.size());
+
+        } catch (Exception e) {
+            log.error("Failed to migrate exercises: {}", e.getMessage());
+        }
     }
 }

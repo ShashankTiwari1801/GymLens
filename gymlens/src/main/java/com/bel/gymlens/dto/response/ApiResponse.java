@@ -13,14 +13,19 @@ public class ApiResponse<T> {
     private T payload;
     private String errors;
 
-    public static <T> ApiResponse<T> success(T payload){
+    public static <T> ApiResponse<T> success(T payload) {
         ApiResponse<T> response = new ApiResponse<>();
-//        response();
-        return null;
+        response.setStatus("OK");
+        response.setPayload(payload);
+        response.setErrors(null);
+        return response;
     }
 
     public static <T> ApiResponse<T> error(String message) {
-        return  null;
+        ApiResponse<T> response = new ApiResponse<>();
+        response.setStatus("ERROR");
+        response.setPayload(null);
+        response.setErrors(message);
+        return response;
     }
-
 }

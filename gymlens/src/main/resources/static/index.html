@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GymLens — Bodyweight Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 13px;
+            background: #1b4470;
+            background-image:
+                    radial-gradient(ellipse at 60% 0%, #3a7bd5 0%, transparent 60%),
+                    radial-gradient(ellipse at 0% 100%, #0d2a4a 0%, transparent 50%),
+                    url("data:image/svg+xml,%3Csvg width='400' height='300' xmlns='http://www.w3.org/2000/svg'%3E%3Cellipse cx='200' cy='280' rx='300' ry='80' fill='%2300000022'/%3E%3C/svg%3E");
+            background-size: cover;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* TASKBAR */
+        .taskbar {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: 40px;
+            background: linear-gradient(to bottom,
+            rgba(20,60,120,0.92) 0%,
+            rgba(10,40,90,0.97) 50%,
+            rgba(15,50,110,0.95) 100%);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(100,160,255,0.4);
+            display: flex;
+            align-items: center;
+            padding: 0 4px;
+            z-index: 1000;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.5);
+        }
+
+        .start-btn {
+            height: 30px;
+            padding: 0 14px;
+            background: linear-gradient(to bottom, #5aab2e 0%, #3d8a1a 40%, #2f7010 60%, #4a9e24 100%);
+            border: 1px solid #1a5a08;
+            border-radius: 15px;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+            letter-spacing: 0.3px;
+        }
+
+        .start-orb {
+            width: 14px; height: 14px;
+            background: radial-gradient(circle at 40% 35%, #fff 0%, #c8e8ff 40%, #4499dd 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 4px rgba(100,180,255,0.8);
+        }
+
+        .taskbar-divider {
+            width: 1px;
+            height: 28px;
+            background: linear-gradient(to bottom, transparent, rgba(100,160,255,0.4), transparent);
+            margin: 0 6px;
+        }
+
+        .taskbar-btn {
+            height: 30px;
+            padding: 0 12px;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.18), rgba(255,255,255,0.06));
+            border: 1px solid rgba(100,160,255,0.35);
+            border-radius: 3px;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+        }
+
+        .taskbar-active {
+            background: linear-gradient(to bottom, rgba(255,255,255,0.08), rgba(255,255,255,0.2));
+            border-color: rgba(100,160,255,0.6);
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .systray {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 8px;
+            height: 30px;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(255,255,255,0.14));
+            border: 1px solid rgba(100,160,255,0.3);
+            border-radius: 3px;
+        }
+
+        .clock {
+            text-align: right;
+            color: white;
+            font-size: 11px;
+            line-height: 1.5;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+        }
+
+        /* DESKTOP */
+        .desktop {
+            padding: 20px;
+            padding-bottom: 60px;
+            min-height: 100vh;
+        }
+
+        /* WINDOW */
+        .window {
+            background: rgba(240,248,255,0.92);
+            border-radius: 8px 8px 4px 4px;
+            box-shadow:
+                    0 8px 32px rgba(0,0,0,0.5),
+                    0 2px 4px rgba(0,0,0,0.3),
+                    inset 0 1px 0 rgba(255,255,255,0.8);
+            overflow: hidden;
+            margin-bottom: 16px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(100,160,255,0.5);
+        }
+
+        /* TITLE BAR */
+        .titlebar {
+            height: 32px;
+            background: linear-gradient(to bottom,
+            #4a9be8 0%,
+            #2176d2 45%,
+            #1a65c0 50%,
+            #2878d8 55%,
+            #4a9be8 100%);
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            gap: 6px;
+            position: relative;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .titlebar-icon {
+            width: 16px; height: 16px;
+            background: linear-gradient(135deg, #80c0ff, #2060c0);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+
+        .titlebar-title {
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            flex: 1;
+            letter-spacing: 0.2px;
+        }
+
+        .titlebar-btns {
+            display: flex;
+            gap: 2px;
+        }
+
+        .tb-btn {
+            width: 26px; height: 20px;
+            border-radius: 4px;
+            border: 1px solid rgba(0,0,0,0.3);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+        }
+
+        .tb-min { background: linear-gradient(to bottom, #6ab0e8, #3a80c8); }
+        .tb-max { background: linear-gradient(to bottom, #6ab0e8, #3a80c8); }
+        .tb-close {
+            background: linear-gradient(to bottom, #f06060, #c82020);
+            border-color: rgba(120,0,0,0.4);
+        }
+        .tb-close:hover { background: linear-gradient(to bottom, #ff8080, #e03030); }
+
+        /* MENU BAR */
+        .menubar {
+            height: 24px;
+            background: linear-gradient(to bottom, #e8f4ff, #d0e8ff);
+            border-bottom: 1px solid #a0c8e8;
+            display: flex;
+            align-items: center;
+            padding: 0 4px;
+            gap: 0;
+        }
+
+        .menu-item {
+            padding: 0 10px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+            color: #000;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .menu-item:hover {
+            background: linear-gradient(to bottom, #b8d8f8, #90c0f0);
+        }
+
+        /* ADDRESS BAR */
+        .addressbar {
+            height: 28px;
+            background: linear-gradient(to bottom, #f0f8ff, #e0f0ff);
+            border-bottom: 1px solid #b0d0e8;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            gap: 8px;
+        }
+
+        .addr-btn {
+            width: 22px; height: 20px;
+            background: linear-gradient(to bottom, #e8f4ff, #c8e0f8);
+            border: 1px solid #90c0e0;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            cursor: pointer;
+            color: #2060a0;
+        }
+
+        .addr-input {
+            flex: 1;
+            height: 20px;
+            background: white;
+            border: 1px solid #90c0e0;
+            border-radius: 3px;
+            padding: 0 8px;
+            font-size: 12px;
+            color: #2060a0;
+            outline: none;
+        }
+
+        /* CONTENT */
+        .window-body {
+            padding: 16px;
+            background: linear-gradient(to bottom, #f8fbff, #eef6ff);
+        }
+
+        /* AERO PANELS */
+        .aero-panel {
+            background: linear-gradient(135deg,
+            rgba(255,255,255,0.85) 0%,
+            rgba(220,240,255,0.7) 100%);
+            border: 1px solid rgba(100,160,220,0.5);
+            border-radius: 6px;
+            box-shadow:
+                    0 2px 8px rgba(0,80,160,0.1),
+                    inset 0 1px 0 rgba(255,255,255,0.9);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: linear-gradient(to bottom,
+            rgba(180,220,255,0.9),
+            rgba(140,200,255,0.7));
+            border-bottom: 1px solid rgba(100,160,220,0.4);
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #1a4a8a;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.7);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .panel-icon {
+            width: 16px; height: 16px;
+            background: linear-gradient(135deg, #60a0f0, #2060c0);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            color: white;
+        }
+
+        /* STATS GRID */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .stat-tile {
+            background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(220,240,255,0.8));
+            border: 1px solid rgba(100,160,220,0.5);
+            border-radius: 6px;
+            padding: 12px 14px;
+            box-shadow: 0 2px 6px rgba(0,80,160,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #5080b0;
+            font-weight: 600;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 300;
+            color: #1a4a8a;
+            line-height: 1;
+        }
+
+        .stat-unit {
+            font-size: 13px;
+            color: #6090c0;
+            margin-left: 3px;
+        }
+
+        .stat-sub {
+            font-size: 11px;
+            color: #8ab0d0;
+            margin-top: 4px;
+        }
+
+        /* CHART */
+        .chart-wrap {
+            padding: 14px;
+            position: relative;
+            height: 240px;
+        }
+
+        /* RANGE TABS — XP style */
+        .range-tabs {
+            display: flex;
+            gap: 3px;
+            padding: 8px 12px 0;
+        }
+
+        .range-tab {
+            padding: 3px 12px;
+            font-size: 12px;
+            background: linear-gradient(to bottom, #e0f0ff, #c8e0f8);
+            border: 1px solid #80b8d8;
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+            cursor: pointer;
+            color: #2060a0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .range-tab.active {
+            background: linear-gradient(to bottom, #ffffff, #f0f8ff);
+            border-color: #60a0d0;
+            color: #003080;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* TABLE */
+        .win-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .win-table thead tr {
+            background: linear-gradient(to bottom, #d0e8ff, #b8d8f8);
+        }
+
+        .win-table th {
+            padding: 5px 12px;
+            text-align: left;
+            color: #1a4a8a;
+            font-weight: 600;
+            border-right: 1px solid rgba(100,160,220,0.3);
+            font-size: 12px;
+        }
+
+        .win-table td {
+            padding: 5px 12px;
+            border-bottom: 1px solid rgba(100,160,220,0.15);
+            color: #1a3a6a;
+        }
+
+        .win-table tbody tr:nth-child(even) {
+            background: rgba(200,228,255,0.3);
+        }
+
+        .win-table tbody tr:hover {
+            background: linear-gradient(to right, #cce4ff, #e0f0ff);
+        }
+
+        .status-bar {
+            height: 22px;
+            background: linear-gradient(to bottom, #d8eeff, #c0d8f0);
+            border-top: 1px solid #90c0e0;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            gap: 12px;
+            font-size: 11px;
+            color: #3060a0;
+        }
+
+        .status-section {
+            padding: 0 8px;
+            border-right: 1px solid #90c0e0;
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #5080b0;
+            font-size: 12px;
+            gap: 8px;
+        }
+
+        .spinner {
+            width: 16px; height: 16px;
+            border: 2px solid #c0d8f0;
+            border-top-color: #2060c0;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .green-dot { color: #208020; font-size: 10px; }
+        .red-dot { color: #c02020; font-size: 10px; }
+
+        /* DESKTOP ICONS */
+        .desktop-icons {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .d-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            width: 72px;
+        }
+
+        .d-icon-img {
+            width: 48px; height: 48px;
+            background: linear-gradient(135deg, #60a8f8, #1860d0);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+        }
+
+        .d-icon-label {
+            color: white;
+            font-size: 11px;
+            text-align: center;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        }
+    </style>
+</head>
+<body>
+
+<!-- Desktop Icons -->
+<div class="desktop-icons">
+    <div class="d-icon">
+        <div class="d-icon-img">💪</div>
+        <div class="d-icon-label">GymLens</div>
+    </div>
+    <div class="d-icon">
+        <div class="d-icon-img">📊</div>
+        <div class="d-icon-label">Analytics</div>
+    </div>
+</div>
+
+<div class="desktop">
+
+    <!-- MAIN WINDOW -->
+    <div class="window" style="max-width:860px;">
+        <div class="titlebar">
+            <div class="titlebar-icon">💪</div>
+            <div class="titlebar-title">GymLens — Bodyweight Tracker</div>
+            <div class="titlebar-btns">
+                <div class="tb-btn tb-min">─</div>
+                <div class="tb-btn tb-max">□</div>
+                <div class="tb-btn tb-close">✕</div>
+            </div>
+        </div>
+
+        <div class="menubar">
+            <div class="menu-item">File</div>
+            <div class="menu-item">View</div>
+            <div class="menu-item">Analytics</div>
+            <div class="menu-item">Tools</div>
+            <div class="menu-item">Help</div>
+        </div>
+
+        <div class="addressbar">
+            <div class="addr-btn">◀</div>
+            <div class="addr-btn">▶</div>
+            <div class="addr-btn">↑</div>
+            <input class="addr-input" value="http://localhost:8080/api/v1/analytics/bodyweight" readonly/>
+            <div class="addr-btn">▶</div>
+        </div>
+
+        <div class="window-body">
+
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-tile">
+                    <div class="stat-label">Current Weight</div>
+                    <div><span class="stat-value" id="current-weight">—</span><span class="stat-unit">kg</span></div>
+                    <div class="stat-sub">Latest entry</div>
+                </div>
+                <div class="stat-tile">
+                    <div class="stat-label">Lowest Weight</div>
+                    <div><span class="stat-value" id="lowest-weight">—</span><span class="stat-unit">kg</span></div>
+                    <div class="stat-sub">All time</div>
+                </div>
+                <div class="stat-tile">
+                    <div class="stat-label">Total Entries</div>
+                    <div><span class="stat-value" id="total-entries">—</span></div>
+                    <div class="stat-sub">Weigh-ins logged</div>
+                </div>
+            </div>
+
+            <!-- Chart Panel -->
+            <div class="aero-panel" style="margin-bottom:12px;">
+                <div class="panel-header">
+                    <div class="panel-icon">📈</div>
+                    Bodyweight History
+                </div>
+                <div class="range-tabs">
+                    <button class="range-tab" onclick="filterChart(30,this)">30 Days</button>
+                    <button class="range-tab" onclick="filterChart(90,this)">90 Days</button>
+                    <button class="range-tab active" onclick="filterChart(365,this)">1 Year</button>
+                    <button class="range-tab" onclick="filterChart(99999,this)">All Time</button>
+                </div>
+                <div class="chart-wrap">
+                    <div class="loading" id="chart-loading"><div class="spinner"></div> Loading data...</div>
+                    <canvas id="weightChart" style="display:none"></canvas>
+                </div>
+            </div>
+
+            <!-- Recent Table -->
+            <div class="aero-panel">
+                <div class="panel-header">
+                    <div class="panel-icon">📋</div>
+                    Recent Weigh-ins
+                </div>
+                <div id="weight-table">
+                    <div class="loading" style="height:80px"><div class="spinner"></div> Loading...</div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="status-bar">
+            <div class="status-section" id="conn-status">
+                <span class="green-dot">●</span>&nbsp; Connecting...
+            </div>
+            <div class="status-section" id="record-count">0 objects</div>
+            <div class="status-section">GymLens v1.0</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- TASKBAR -->
+<div class="taskbar">
+    <button class="start-btn">
+        <div class="start-orb"></div>
+        Start
+    </button>
+    <div class="taskbar-divider"></div>
+    <div class="taskbar-btn taskbar-active">💪 GymLens</div>
+    <div class="systray">
+        <div class="clock" id="clock">12:00 PM<br>1/1/2024</div>
+    </div>
+</div>
+
+<script>
+    const API = 'http://localhost:8080';
+    let allData = [];
+    let chart = null;
+
+    // Clock
+    function updateClock() {
+        const now = new Date();
+        const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const date = now.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+        document.getElementById('clock').innerHTML = `${time}<br>${date}`;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    async function fetchData() {
+        try {
+            const [historyRes, recentRes, countRes] = await Promise.all([
+                fetch(`${API}/api/v1/analytics/bodyweight`),
+                fetch(`${API}/api/v1/analytics/bodyweight/recent`),
+                fetch(`${API}/api/v1/analytics/bodyweight/count`)
+            ]);
+
+            if (!historyRes.ok) throw new Error('API error');
+
+            const history = (await historyRes.json()).payload;
+            const recent = (await recentRes.json()).payload;
+            const count = (await countRes.json()).payload;
+
+            allData = history;
+
+            document.getElementById('conn-status').innerHTML = '<span class="green-dot">●</span>&nbsp; Connected to localhost:8080';
+            document.getElementById('record-count').textContent = `${count} objects`;
+
+            renderStats(history, count);
+            renderChart(history, 365);
+            renderTable(recent);
+
+        } catch (e) {
+            document.getElementById('conn-status').innerHTML = '<span class="red-dot">●</span>&nbsp; Cannot connect to API';
+            document.getElementById('chart-loading').textContent = 'Could not load — is Spring Boot running?';
+            document.getElementById('weight-table').innerHTML = '<div class="loading" style="height:60px">No data available</div>';
+        }
+    }
+
+    function renderStats(history, count) {
+        if (!history.length) return;
+        const weights = history.map(h => h.weight);
+        const latest = history[history.length - 1].weight;
+        const lowest = Math.min(...weights);
+        document.getElementById('current-weight').textContent = latest.toFixed(1);
+        document.getElementById('lowest-weight').textContent = lowest.toFixed(1);
+        document.getElementById('total-entries').textContent = count;
+    }
+
+    function renderChart(data, days) {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - days);
+        const filtered = data.filter(d => new Date(d.date) >= cutoff);
+
+        document.getElementById('chart-loading').style.display = 'none';
+        const canvas = document.getElementById('weightChart');
+        canvas.style.display = 'block';
+        if (chart) chart.destroy();
+
+        const ctx = canvas.getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+        gradient.addColorStop(0, 'rgba(32,96,192,0.3)');
+        gradient.addColorStop(1, 'rgba(32,96,192,0.02)');
+
+        chart = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: filtered.map(d => d.date),
+                datasets: [{
+                    data: filtered.map(d => d.weight),
+                    borderColor: '#2060c0',
+                    backgroundColor: gradient,
+                    borderWidth: 2,
+                    pointRadius: filtered.length > 100 ? 0 : 3,
+                    pointBackgroundColor: '#2060c0',
+                    pointBorderColor: 'white',
+                    pointBorderWidth: 1.5,
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(240,248,255,0.95)',
+                        borderColor: '#90c0e0',
+                        borderWidth: 1,
+                        titleColor: '#3060a0',
+                        bodyColor: '#1a4a8a',
+                        bodyFont: { family: 'Segoe UI', size: 13, weight: '600' },
+                        callbacks: { label: ctx => ` ${ctx.parsed.y.toFixed(1)} kg` }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(0,80,160,0.06)' },
+                        ticks: { color: '#5080b0', font: { family: 'Segoe UI', size: 11 }, maxTicksLimit: 8 }
+                    },
+                    y: {
+                        grid: { color: 'rgba(0,80,160,0.06)' },
+                        ticks: { color: '#5080b0', font: { family: 'Segoe UI', size: 11 }, callback: v => v + ' kg' }
+                    }
+                }
+            }
+        });
+    }
+
+    function filterChart(days, btn) {
+        document.querySelectorAll('.range-tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        renderChart(allData, days);
+    }
+
+    function renderTable(data) {
+        if (!data.length) {
+            document.getElementById('weight-table').innerHTML = '<div class="loading" style="height:60px">No data</div>';
+            return;
+        }
+        document.getElementById('weight-table').innerHTML = `
+      <table class="win-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Date</th>
+            <th>Day</th>
+            <th>Weight (kg)</th>
+            <th>Change</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map((entry, i) => {
+            const date = new Date(entry.date);
+            const day = date.toLocaleDateString('en-US', { weekday: 'long' });
+            const fmt = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            const prev = data[i + 1];
+            const change = prev ? (entry.weight - prev.weight).toFixed(1) : '—';
+            const changeColor = change > 0 ? '#c04040' : change < 0 ? '#208020' : '#606060';
+            return `
+              <tr>
+                <td>${i + 1}</td>
+                <td>${fmt}</td>
+                <td>${day}</td>
+                <td><strong>${entry.weight.toFixed(1)}</strong></td>
+                <td style="color:${changeColor}">${change !== '—' ? (change > 0 ? '▲' : '▼') + ' ' + Math.abs(change) : '—'}</td>
+              </tr>
+            `;
+        }).join('')}
+        </tbody>
+      </table>
+    `;
+    }
+
+    fetchData();
+</script>
+</body>
+</html>
